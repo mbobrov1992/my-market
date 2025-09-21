@@ -81,6 +81,16 @@ public class ItemController {
         return "item";
     }
 
+    @PostMapping("/items/{id}")
+    public String updateCartItemCount(
+            @PathVariable(value = "id") Long itemId,
+            @RequestParam(value = "action") CartItemAction action
+    ) {
+        itemService.updateCartItemCount(itemId, action);
+
+        return "redirect:/items/" + itemId;
+    }
+
     @RequiredArgsConstructor
     public enum ItemSortType {
         NO(null),
