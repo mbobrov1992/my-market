@@ -39,7 +39,10 @@ public class ItemService {
                 search, search, pageable
         );
 
-        Map<Long, Integer> cartItemCount = getCartItemCount(itemPage.getContent());
+        List<Long> itemIds = itemPage.stream()
+                .map(ItemEnt::getId)
+                .toList();
+        Map<Long, Integer> cartItemCount = getCartItemCount(itemIds);
         return itemPage
                 .map(itemMapper::toDto)
                 .map(dto -> {
@@ -48,12 +51,8 @@ public class ItemService {
                 });
     }
 
-    private Map<Long, Integer> getCartItemCount(List<ItemEnt> items) {
-        if (items.isEmpty()) return Map.of();
-
-        List<Long> itemIds = items.stream()
-                .map(ItemEnt::getId)
-                .toList();
+    private Map<Long, Integer> getCartItemCount(List<Long> itemIds) {
+        if (itemIds.isEmpty()) return Map.of();
 
         log.info("Получаем количество товаров с ids: {} в корзине", itemIds);
 
@@ -65,9 +64,9 @@ public class ItemService {
             cartItemCount.put(cartItem.getItem().getId(), cartItem.getCount());
         }
 
-        for (ItemEnt item : items) {
-            if (!cartItemCount.containsKey(item.getId())) {
-                cartItemCount.put(item.getId(), 0);
+        for (Long itemId : itemIds) {
+            if (!cartItemCount.containsKey(itemId)) {
+                cartItemCount.put(itemId, 0);
             }
         }
 
@@ -99,5 +98,18 @@ public class ItemService {
             cartItem.setCount(1);
             cartItemRepo.save(cartItem);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public ItemCountDto getItem(Long id) {
+        log.info("Получаем товар c id {}", id);
+        return itemRepo.findById(id)
+                .map(itemMapper::toDto)
+                .map(itemDto -> {
+                    Map<Long, Integer> cartItemCount = getCartItemCount(List.of(id));
+                    Integer count = cartItemCount.get(id);
+                    return new ItemCountDto(itemDto, count);
+                })
+                .orElseThrow();
     }
 }
