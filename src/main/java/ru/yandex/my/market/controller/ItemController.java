@@ -8,8 +8,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.yandex.my.market.model.dto.ItemCountDto;
+import ru.yandex.my.market.model.enums.CartItemAction;
 import ru.yandex.my.market.service.ItemService;
 
 import static org.springframework.data.domain.Sort.Direction.ASC;
@@ -43,6 +46,26 @@ public class ItemController {
         model.addAttribute("items", chunkWithPadding(itemPage.get().toList(), 3, ItemCountDto.MOCK));
 
         return "items";
+    }
+
+    @PostMapping("/items")
+    public String updateCartItemCount(
+            RedirectAttributes redirect,
+            @RequestParam(value = "id") Long itemId,
+            @RequestParam(value = "action") CartItemAction action,
+            @RequestParam(value = "search", defaultValue = "") String search,
+            @RequestParam(value = "pageNumber", defaultValue = "0") int pageNumber,
+            @RequestParam(value = "pageSize", defaultValue = "5") int pageSize,
+            @RequestParam(value = "sort", defaultValue = "NO") ItemSortType sortType
+    ) {
+        itemService.updateCartItemCount(itemId, action);
+
+        redirect.addAttribute("search", search);
+        redirect.addAttribute("pageNumber", pageNumber);
+        redirect.addAttribute("pageSize", pageSize);
+        redirect.addAttribute("sort", sortType.name());
+
+        return "redirect:/items";
     }
 
     @RequiredArgsConstructor
