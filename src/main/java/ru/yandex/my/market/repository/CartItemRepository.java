@@ -1,5 +1,6 @@
 package ru.yandex.my.market.repository;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
@@ -13,6 +14,9 @@ import java.util.Optional;
 
 @Repository
 public interface CartItemRepository extends CrudRepository<CartItemEnt, Long> {
+
+    @EntityGraph(attributePaths = {"item"})
+    List<CartItemEnt> findAll();
 
     List<CartItemEnt> findAllByItemIdIn(List<Long> itemIds);
 

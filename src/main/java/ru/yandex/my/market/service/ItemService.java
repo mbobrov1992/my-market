@@ -14,10 +14,7 @@ import ru.yandex.my.market.model.enums.CartItemAction;
 import ru.yandex.my.market.repository.CartItemRepository;
 import ru.yandex.my.market.repository.ItemRepository;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static ru.yandex.my.market.model.enums.CartItemAction.MINUS;
 import static ru.yandex.my.market.model.enums.CartItemAction.PLUS;
@@ -111,5 +108,16 @@ public class ItemService {
                     return new ItemCountDto(itemDto, count);
                 })
                 .orElseThrow();
+    }
+
+    public List<ItemCountDto> getCartItems() {
+        log.info("Получаем товары из корзины");
+        return cartItemRepo.findAll()
+                .stream()
+                .map(cartItem -> new ItemCountDto(
+                        itemMapper.toDto(cartItem.getItem()),
+                        cartItem.getCount()
+                ))
+                .toList();
     }
 }

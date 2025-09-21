@@ -15,6 +15,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.yandex.my.market.model.dto.ItemCountDto;
 import ru.yandex.my.market.model.enums.CartItemAction;
 import ru.yandex.my.market.service.ItemService;
+import ru.yandex.my.market.service.PriceService;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 import static org.springframework.data.domain.Sort.Direction.ASC;
 import static ru.yandex.my.market.util.ListUtil.chunkWithPadding;
@@ -24,6 +28,7 @@ import static ru.yandex.my.market.util.ListUtil.chunkWithPadding;
 public class ItemController {
 
     private final ItemService itemService;
+    private final PriceService priceService;
 
     @GetMapping("/")
     public String redirect() {
@@ -89,6 +94,19 @@ public class ItemController {
         itemService.updateCartItemCount(itemId, action);
 
         return "redirect:/items/" + itemId;
+    }
+
+    @GetMapping("/cart/items")
+    public String getCartItems(
+            Model model
+    ) {
+        List<ItemCountDto> items = itemService.getCartItems();
+        BigDecimal totalPrice = priceService.calculatePrice(items);
+
+        model.addAttribute("items", items);
+        model.addAttribute("total", totalPrice);
+
+        return "cart";
     }
 
     @RequiredArgsConstructor
