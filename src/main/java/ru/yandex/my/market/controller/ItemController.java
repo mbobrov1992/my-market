@@ -55,7 +55,7 @@ public class ItemController {
     }
 
     @PostMapping("/items")
-    public String updateCartItemCount(
+    public String updateCartItemCountFromItemsView(
             RedirectAttributes redirect,
             @RequestParam(value = "id") Long itemId,
             @RequestParam(value = "action") CartItemAction action,
@@ -87,7 +87,7 @@ public class ItemController {
     }
 
     @PostMapping("/items/{id}")
-    public String updateCartItemCount(
+    public String updateCartItemCountFromItemView(
             @PathVariable(value = "id") Long itemId,
             @RequestParam(value = "action") CartItemAction action
     ) {
@@ -107,6 +107,16 @@ public class ItemController {
         model.addAttribute("total", totalPrice);
 
         return "cart";
+    }
+
+    @PostMapping("/cart/items")
+    public String updateCartItemCountFromCartView(
+            @RequestParam(value = "id") Long itemId,
+            @RequestParam(value = "action") CartItemAction action
+    ) {
+        itemService.updateCartItemCount(itemId, action);
+
+        return "redirect:/cart/items";
     }
 
     @RequiredArgsConstructor

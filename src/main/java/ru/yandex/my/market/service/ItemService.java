@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.my.market.mapper.ItemMapper;
@@ -16,8 +17,7 @@ import ru.yandex.my.market.repository.ItemRepository;
 
 import java.util.*;
 
-import static ru.yandex.my.market.model.enums.CartItemAction.MINUS;
-import static ru.yandex.my.market.model.enums.CartItemAction.PLUS;
+import static ru.yandex.my.market.model.enums.CartItemAction.*;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -77,7 +77,7 @@ public class ItemService {
         if (cartItemOpt.isPresent()) {
             CartItemEnt cartItem = cartItemOpt.get();
 
-            if (cartItem.getCount() == 1 && action == MINUS) {
+            if (action == DELETE || cartItem.getCount() == 1 && action == MINUS) {
                 log.info("Удаляем товар c id {} из корзины", itemId);
                 cartItemRepo.delete(cartItem);
             } else {
@@ -112,7 +112,10 @@ public class ItemService {
 
     public List<ItemCountDto> getCartItems() {
         log.info("Получаем товары из корзины");
-        return cartItemRepo.findAll()
+
+        Sort sort = Sort.by(Sort.Direction.ASC, "id");
+
+        return cartItemRepo.findAll(sort)
                 .stream()
                 .map(cartItem -> new ItemCountDto(
                         itemMapper.toDto(cartItem.getItem()),
