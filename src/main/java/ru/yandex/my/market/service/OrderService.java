@@ -28,4 +28,12 @@ public class OrderService {
                 .map(orderMapper::toDto)
                 .toList();
     }
+
+    public OrderDto getOrder(Long id) {
+        log.info("Получаем заказ с id: {}", id);
+
+        return orderRepo.findById(id)
+                .map(orderMapper::toDto)
+                .orElseThrow();
+    }
 }
