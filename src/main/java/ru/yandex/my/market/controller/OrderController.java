@@ -5,7 +5,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.yandex.my.market.model.dto.OrderDto;
 import ru.yandex.my.market.service.OrderService;
 
@@ -40,5 +42,16 @@ public class OrderController {
         model.addAttribute("newOrder", isNew);
 
         return "order";
+    }
+
+    @PostMapping("/buy")
+    public String buy(
+            RedirectAttributes redirect
+    ) {
+        OrderDto order = orderService.createOrder();
+
+        redirect.addAttribute("newOrder", true);
+
+        return "redirect:/orders/" + order.id();
     }
 }

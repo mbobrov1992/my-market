@@ -4,10 +4,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.my.market.mapper.OrderMapper;
+import ru.yandex.my.market.model.dto.CartItemDto;
 import ru.yandex.my.market.model.dto.OrderDto;
+import ru.yandex.my.market.model.entity.OrderEnt;
+import ru.yandex.my.market.model.entity.OrderItemEnt;
+import ru.yandex.my.market.repository.ItemRepository;
 import ru.yandex.my.market.repository.OrderRepository;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -16,6 +23,9 @@ import java.util.List;
 public class OrderService {
 
     private final OrderRepository orderRepo;
+    private final ItemRepository itemRepo;
+    private final CartService cartService;
+    private final PriceService priceService;
     private final OrderMapper orderMapper;
 
     public List<OrderDto> getOrders() {
@@ -35,5 +45,48 @@ public class OrderService {
         return orderRepo.findById(id)
                 .map(orderMapper::toDto)
                 .orElseThrow();
+    }
+
+    @Transactional
+    public OrderDto createOrder() {
+        log.info("Начинаем процесс создания заказа");
+
+        List<CartItemDto> cartItems = cartService.getCartItems();
+
+        cartService.deleteCartItems();
+
+        OrderEnt order = createOrder(cartItems);
+        orderRepo.save(order);
+
+        log.info("Создан заказ с id: {}", order.getId());
+
+        return orderMapper.toDto(order);
+    }
+
+    private OrderEnt createOrder(List<CartItemDto> cartItems) {
+        OrderEnt order = new OrderEnt();
+
+        List<OrderItemEnt> orderItems = new ArrayList<>();
+
+        cartItems.forEach(cartItem -> {
+            OrderItemEnt orderItem = createOrderItem(order, cartItem);
+            orderItems.add(orderItem);
+        });
+
+        order.setItems(orderItems);
+
+        BigDecimal totalPrice = priceService.calculatePrice(cartItems);
+        order.setTotalPrice(totalPrice);
+
+        return order;
+    }
+
+    private OrderItemEnt createOrderItem(OrderEnt order, CartItemDto cartItem) {
+        OrderItemEnt orderItem = new OrderItemEnt();
+        orderItem.setOrder(order);
+        orderItem.setItem(itemRepo.getReferenceById(cartItem.id()));
+        orderItem.setCount(cartItem.count());
+        orderItem.setPrice(cartItem.price());
+        return orderItem;
     }
 }

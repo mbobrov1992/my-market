@@ -92,4 +92,10 @@ public class CartService {
                 ))
                 .toList();
     }
+
+    public void deleteCartItems() {
+        log.info("Удаляем товары из корзины");
+
+        cartItemRepo.deleteAllInBatch();
+    }
 }
