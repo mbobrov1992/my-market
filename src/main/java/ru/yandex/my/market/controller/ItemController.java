@@ -12,13 +12,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import ru.yandex.my.market.model.dto.ItemCountDto;
+import ru.yandex.my.market.model.dto.CartItemDto;
 import ru.yandex.my.market.model.enums.CartItemAction;
+import ru.yandex.my.market.service.CartService;
 import ru.yandex.my.market.service.ItemService;
-import ru.yandex.my.market.service.PriceService;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 import static org.springframework.data.domain.Sort.Direction.ASC;
 import static ru.yandex.my.market.util.ListUtil.chunkWithPadding;
@@ -28,7 +25,7 @@ import static ru.yandex.my.market.util.ListUtil.chunkWithPadding;
 public class ItemController {
 
     private final ItemService itemService;
-    private final PriceService priceService;
+    private final CartService cartService;
 
     @GetMapping("/")
     public String redirect() {
@@ -44,12 +41,12 @@ public class ItemController {
             @RequestParam(value = "sort", defaultValue = "NO") ItemSortType sortType
     ) {
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sortType.getSort());
-        Page<ItemCountDto> itemPage = itemService.getItems(search, pageable);
+        Page<CartItemDto> itemPage = itemService.getItems(search, pageable);
 
         model.addAttribute("search", search);
         model.addAttribute("paging", itemPage);
         model.addAttribute("sort", sortType.name());
-        model.addAttribute("items", chunkWithPadding(itemPage.get().toList(), 3, ItemCountDto.MOCK));
+        model.addAttribute("items", chunkWithPadding(itemPage.get().toList(), 3, CartItemDto.MOCK));
 
         return "items";
     }
@@ -64,7 +61,7 @@ public class ItemController {
             @RequestParam(value = "pageSize", defaultValue = "5") int pageSize,
             @RequestParam(value = "sort", defaultValue = "NO") ItemSortType sortType
     ) {
-        itemService.updateCartItemCount(itemId, action);
+        cartService.updateCartItemCount(itemId, action);
 
         redirect.addAttribute("search", search);
         redirect.addAttribute("pageNumber", pageNumber);
@@ -79,7 +76,7 @@ public class ItemController {
             Model model,
             @PathVariable(value = "id") Long id
     ) {
-        ItemCountDto item = itemService.getItem(id);
+        CartItemDto item = itemService.getItem(id);
 
         model.addAttribute("item", item);
 
@@ -91,32 +88,9 @@ public class ItemController {
             @PathVariable(value = "id") Long itemId,
             @RequestParam(value = "action") CartItemAction action
     ) {
-        itemService.updateCartItemCount(itemId, action);
+        cartService.updateCartItemCount(itemId, action);
 
         return "redirect:/items/" + itemId;
-    }
-
-    @GetMapping("/cart/items")
-    public String getCartItems(
-            Model model
-    ) {
-        List<ItemCountDto> items = itemService.getCartItems();
-        BigDecimal totalPrice = priceService.calculatePrice(items);
-
-        model.addAttribute("items", items);
-        model.addAttribute("total", totalPrice);
-
-        return "cart";
-    }
-
-    @PostMapping("/cart/items")
-    public String updateCartItemCountFromCartView(
-            @RequestParam(value = "id") Long itemId,
-            @RequestParam(value = "action") CartItemAction action
-    ) {
-        itemService.updateCartItemCount(itemId, action);
-
-        return "redirect:/cart/items";
     }
 
     @RequiredArgsConstructor

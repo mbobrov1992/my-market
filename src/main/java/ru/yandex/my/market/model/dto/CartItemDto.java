@@ -3,7 +3,7 @@ package ru.yandex.my.market.model.dto;
 
 import java.math.BigDecimal;
 
-public record ItemCountDto(
+public record CartItemDto(
         long id,
         String title,
         String imagePath,
@@ -11,7 +11,7 @@ public record ItemCountDto(
         BigDecimal price,
         int count
 ) {
-    public ItemCountDto(ItemDto item, int count) {
+    public CartItemDto(ItemDto item, int count) {
         this(
                 item.id(),
                 item.title(),
@@ -22,7 +22,7 @@ public record ItemCountDto(
         );
     }
 
-    public static final ItemCountDto MOCK = new ItemCountDto(
+    public static final CartItemDto MOCK = new CartItemDto(
             -1,
             null,
             null,

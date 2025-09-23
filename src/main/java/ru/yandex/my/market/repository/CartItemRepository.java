@@ -1,5 +1,6 @@
 package ru.yandex.my.market.repository;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -16,7 +17,7 @@ import java.util.Optional;
 public interface CartItemRepository extends JpaRepository<CartItemEnt, Long> {
 
     @EntityGraph(attributePaths = {"item"})
-    List<CartItemEnt> findAll();
+    List<CartItemEnt> findAll(Sort sort);
 
     List<CartItemEnt> findAllByItemIdIn(List<Long> itemIds);
 
