@@ -7,8 +7,6 @@ import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
-
 @Slf4j
 @Aspect
 @Component
@@ -20,10 +18,10 @@ public class LoggingAspect {
 
     @Before("controllerMethods()")
     public void logBefore(JoinPoint joinPoint) {
-        log.info(
+        log.debug(
                 "Request received: method {}, parameters {}",
                 joinPoint.getSignature().getName(),
-                Arrays.toString(joinPoint.getArgs())
+                joinPoint.getArgs()
         );
     }
 }
