@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.yandex.my.market.exception.OrderCreationException;
+import ru.yandex.my.market.exception.OrderNotFoundException;
 import ru.yandex.my.market.mapper.OrderMapper;
 import ru.yandex.my.market.model.dto.CartItemDto;
 import ru.yandex.my.market.model.dto.OrderDto;
@@ -44,7 +46,7 @@ public class OrderService {
 
         return orderRepo.findById(id)
                 .map(orderMapper::toDto)
-                .orElseThrow();
+                .orElseThrow(() -> new OrderNotFoundException(id));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -64,6 +66,10 @@ public class OrderService {
     }
 
     private OrderEnt createOrder(List<CartItemDto> cartItems) {
+        if (cartItems == null || cartItems.isEmpty()) {
+            throw new OrderCreationException("Отсутствуют товары в корзине");
+        }
+
         OrderEnt order = new OrderEnt();
 
         order.setItems(createOrderItems(order, cartItems));

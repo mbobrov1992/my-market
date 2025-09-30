@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.yandex.my.market.exception.ItemNotFoundException;
 import ru.yandex.my.market.mapper.ItemMapper;
 import ru.yandex.my.market.model.dto.CartItemDto;
 import ru.yandex.my.market.model.entity.CartItemEnt;
@@ -61,7 +62,7 @@ public class CartItemService {
                     Integer count = cartItemCount.get(id);
                     return new CartItemDto(itemDto, count);
                 })
-                .orElseThrow();
+                .orElseThrow(() -> new ItemNotFoundException(id));
     }
 
     public Map<Long, Integer> getCartItemCount(List<Long> itemIds) {
@@ -94,6 +95,8 @@ public class CartItemService {
             updateOrDeleteCartItem(itemId, action, cartItemOpt.get());
         } else if (action == PLUS) {
             addNewCartItem(itemId);
+        } else {
+            throw new IllegalStateException("Невозможно обработать действие " + action + " для товара с id " + itemId);
         }
     }
 
