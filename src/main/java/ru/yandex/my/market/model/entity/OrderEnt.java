@@ -21,7 +21,7 @@ public class OrderEnt {
     @Column(name = "id")
     private long id;
 
-    @OneToMany(mappedBy = "order", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemEnt> items;
 
     @Column(name = "total_price")
