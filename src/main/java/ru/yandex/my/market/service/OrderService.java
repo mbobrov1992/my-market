@@ -47,7 +47,7 @@ public class OrderService {
                 .orElseThrow();
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public OrderDto createOrder() {
         log.info("Начинаем процесс создания заказа");
 
