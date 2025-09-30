@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static ru.yandex.my.market.model.enums.CartItemAction.*;
-import static ru.yandex.my.market.model.enums.CartItemAction.PLUS;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -57,26 +56,31 @@ public class CartService {
         Optional<CartItemEnt> cartItemOpt = cartItemRepo.findByItemId(itemId);
 
         if (cartItemOpt.isPresent()) {
-            CartItemEnt cartItem = cartItemOpt.get();
-
-            if (action == DELETE || cartItem.getCount() == 1 && action == MINUS) {
-                log.info("Удаляем товар c id {} из корзины", itemId);
-                cartItemRepo.delete(cartItem);
-            } else {
-                int delta = action == PLUS ? 1 : -1;
-                log.info("Изменяем количество товара c id {} в корзине на дельту: {}", itemId, delta);
-                cartItemRepo.updateCartItemCount(itemId, delta);
-            }
-
+            updateOrDeleteCartItem(itemId, action, cartItemOpt.get());
         } else if (action == PLUS) {
-            log.info("Добавляем товар c id {} в корзину", itemId);
-            ItemEnt item = itemRepo.getReferenceById(itemId);
-
-            CartItemEnt cartItem = new CartItemEnt();
-            cartItem.setItem(item);
-            cartItem.setCount(1);
-            cartItemRepo.save(cartItem);
+            addNewCartItem(itemId);
         }
+    }
+
+    private void updateOrDeleteCartItem(Long itemId, CartItemAction action, CartItemEnt cartItem) {
+        if (action == DELETE || cartItem.getCount() == 1 && action == MINUS) {
+            log.info("Удаляем товар c id {} из корзины", itemId);
+            cartItemRepo.delete(cartItem);
+        } else {
+            int delta = action == PLUS ? 1 : -1;
+            log.info("Изменяем количество товара c id {} в корзине на дельту: {}", itemId, delta);
+            cartItemRepo.updateCartItemCount(itemId, delta);
+        }
+    }
+
+    private void addNewCartItem(Long itemId) {
+        log.info("Добавляем товар c id {} в корзину", itemId);
+        ItemEnt item = itemRepo.getReferenceById(itemId);
+
+        CartItemEnt cartItem = new CartItemEnt();
+        cartItem.setItem(item);
+        cartItem.setCount(1);
+        cartItemRepo.save(cartItem);
     }
 
     public List<CartItemDto> getCartItems() {

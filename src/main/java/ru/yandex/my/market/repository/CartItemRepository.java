@@ -25,6 +25,6 @@ public interface CartItemRepository extends JpaRepository<CartItemEnt, Long> {
 
     @Transactional
     @Modifying
-    @Query("UPDATE CartItemEnt ci SET ci.count = ci.count + :delta WHERE ci.item.id = :itemId")
+    @Query("UPDATE CartItemEnt ci SET ci.count = ci.count + :delta WHERE ci.item.id = :itemId AND ci.count + :delta > 0")
     void updateCartItemCount(@Param("itemId") Long itemId, @Param("delta") Integer delta);
 }
