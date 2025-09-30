@@ -66,6 +66,13 @@ public class OrderService {
     private OrderEnt createOrder(List<CartItemDto> cartItems) {
         OrderEnt order = new OrderEnt();
 
+        order.setItems(createOrderItems(order, cartItems));
+        order.setTotalPrice(calculatePrice(cartItems));
+
+        return order;
+    }
+
+    private List<OrderItemEnt> createOrderItems(OrderEnt order, List<CartItemDto> cartItems) {
         List<OrderItemEnt> orderItems = new ArrayList<>();
 
         cartItems.forEach(cartItem -> {
@@ -73,12 +80,7 @@ public class OrderService {
             orderItems.add(orderItem);
         });
 
-        order.setItems(orderItems);
-
-        BigDecimal totalPrice = priceService.calculatePrice(cartItems);
-        order.setTotalPrice(totalPrice);
-
-        return order;
+        return orderItems;
     }
 
     private OrderItemEnt createOrderItem(OrderEnt order, CartItemDto cartItem) {
@@ -88,5 +90,9 @@ public class OrderService {
         orderItem.setCount(cartItem.count());
         orderItem.setPrice(cartItem.price());
         return orderItem;
+    }
+
+    private BigDecimal calculatePrice(List<CartItemDto> cartItems) {
+        return priceService.calculatePrice(cartItems);
     }
 }
