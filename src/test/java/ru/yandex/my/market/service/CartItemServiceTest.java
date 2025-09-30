@@ -2,13 +2,18 @@ package ru.yandex.my.market.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ru.yandex.my.market.config.TestcontainersConfig;
 import ru.yandex.my.market.mapper.ItemMapper;
+import ru.yandex.my.market.model.dto.CartItemDto;
+import ru.yandex.my.market.model.dto.ItemDto;
 import ru.yandex.my.market.model.entity.CartItemEnt;
 import ru.yandex.my.market.model.entity.ItemEnt;
 import ru.yandex.my.market.model.enums.CartItemAction;
@@ -21,10 +26,11 @@ import java.util.Map;
 import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 
 @DataJpaTest
 @Import(TestcontainersConfig.class)
-public class CartServiceTest {
+public class CartItemServiceTest {
 
     @Autowired
     private CartItemRepository cartItemRepo;
@@ -35,11 +41,46 @@ public class CartServiceTest {
     @MockitoBean
     private ItemMapper itemMapper;
 
-    private CartService cartService;
+    private CartItemService cartItemService;
 
     @BeforeEach
     void setUp() {
-        cartService = new CartService(cartItemRepo, itemRepo, itemMapper);
+        cartItemService = new CartItemService(cartItemRepo, itemRepo, itemMapper);
+    }
+
+    @Test
+    void testGetItems() {
+        ItemEnt item = new ItemEnt();
+        item.setTitle("Тестовый товар");
+        item.setDescription("Описание");
+        item.setPrice(BigDecimal.ONE);
+        itemRepo.save(item);
+
+        ItemDto dto = new ItemDto(1, null, null, null, null);
+        Mockito.when(itemMapper.toDto(any(ItemEnt.class))).thenReturn(dto);
+
+        Page<CartItemDto> resultPage = cartItemService.getItems("Тестовый", PageRequest.of(0, 10));
+
+        assertThat(resultPage).isNotNull();
+        assertThat(resultPage.getContent()).isNotEmpty();
+        assertThat(resultPage.getContent().getFirst().count()).isEqualTo(0);
+    }
+
+    @Test
+    void testGetItem() {
+        ItemEnt item = new ItemEnt();
+        item.setTitle("Тестовый товар");
+        item.setDescription("Описание");
+        item.setPrice(BigDecimal.ONE);
+        item = itemRepo.save(item);
+
+        ItemDto dto = new ItemDto(1, null, null, null, null);
+        Mockito.when(itemMapper.toDto(item)).thenReturn(dto);
+
+        CartItemDto result = cartItemService.getItem(item.getId());
+
+        assertThat(result).isNotNull();
+        assertThat(result.count()).isEqualTo(0);
     }
 
     @Test
@@ -54,7 +95,7 @@ public class CartServiceTest {
         cartItemRepo.save(cartItem1);
 
         List<Long> itemIds = List.of(item1.getId(), item2.getId());
-        Map<Long, Integer> counts = cartService.getCartItemCount(itemIds);
+        Map<Long, Integer> counts = cartItemService.getCartItemCount(itemIds);
 
         assertThat(counts).hasSize(2);
         assertThat(counts.get(item1.getId())).isEqualTo(3);
@@ -66,7 +107,7 @@ public class CartServiceTest {
         ItemEnt item = getMockItem();
         itemRepo.save(item);
 
-        cartService.updateCartItemCount(item.getId(), CartItemAction.PLUS);
+        cartItemService.updateCartItemCount(item.getId(), CartItemAction.PLUS);
 
         List<CartItemEnt> cartItems = cartItemRepo.findAll(Sort.by(Sort.Direction.ASC, "id"));
         assertThat(cartItems).hasSize(1);
@@ -84,7 +125,7 @@ public class CartServiceTest {
         cartItem.setCount(2);
         cartItemRepo.save(cartItem);
 
-        cartService.updateCartItemCount(item.getId(), CartItemAction.DELETE);
+        cartItemService.updateCartItemCount(item.getId(), CartItemAction.DELETE);
         assertThat(cartItemRepo.findByItemId(item.getId())).isEmpty();
     }
 
@@ -98,7 +139,7 @@ public class CartServiceTest {
         cartItem.setCount(5);
         cartItemRepo.save(cartItem);
 
-        cartService.deleteCartItems();
+        cartItemService.deleteCartItems();
 
         assertThat(cartItemRepo.findAll()).isEmpty();
     }

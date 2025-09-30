@@ -12,8 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import ru.yandex.my.market.model.dto.CartItemDto;
 import ru.yandex.my.market.model.enums.CartItemAction;
-import ru.yandex.my.market.service.CartService;
-import ru.yandex.my.market.service.ItemService;
+import ru.yandex.my.market.service.CartItemService;
 
 import java.util.List;
 
@@ -28,10 +27,7 @@ class ItemControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private ItemService itemService;
-
-    @MockitoBean
-    private CartService cartService;
+    private CartItemService cartItemService;
 
     @Test
     void testRedirectRoot() throws Exception {
@@ -45,7 +41,7 @@ class ItemControllerTest {
         CartItemDto mockItem = CartItemDto.MOCK;
         Page<CartItemDto> page = new PageImpl<>(List.of(mockItem));
 
-        Mockito.when(itemService.getItems(anyString(), any(PageRequest.class))).thenReturn(page);
+        Mockito.when(cartItemService.getItems(anyString(), any(PageRequest.class))).thenReturn(page);
 
         ResultActions result = mockMvc.perform(get("/items")
                 .param("search", "test")
@@ -74,14 +70,14 @@ class ItemControllerTest {
         result.andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("/items**"));
 
-        Mockito.verify(cartService).updateCartItemCount(1L, CartItemAction.PLUS);
+        Mockito.verify(cartItemService).updateCartItemCount(1L, CartItemAction.PLUS);
     }
 
     @Test
     void testGetItem() throws Exception {
         CartItemDto mockItem = CartItemDto.MOCK;
 
-        Mockito.when(itemService.getItem(1L)).thenReturn(mockItem);
+        Mockito.when(cartItemService.getItem(1L)).thenReturn(mockItem);
 
         mockMvc.perform(get("/items/1"))
                 .andExpect(status().isOk())
@@ -96,6 +92,6 @@ class ItemControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/items/1"));
 
-        Mockito.verify(cartService).updateCartItemCount(1L, CartItemAction.MINUS);
+        Mockito.verify(cartItemService).updateCartItemCount(1L, CartItemAction.MINUS);
     }
 }

@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import ru.yandex.my.market.model.dto.CartItemDto;
 import ru.yandex.my.market.model.enums.CartItemAction;
-import ru.yandex.my.market.service.CartService;
+import ru.yandex.my.market.service.CartItemService;
 import ru.yandex.my.market.service.PriceService;
 
 import java.math.BigDecimal;
@@ -18,14 +18,14 @@ import java.util.List;
 @Controller
 public class CartController {
 
-    private final CartService cartService;
+    private final CartItemService cartItemService;
     private final PriceService priceService;
 
     @GetMapping("/cart/items")
     public String getCartItems(
             Model model
     ) {
-        List<CartItemDto> items = cartService.getCartItems();
+        List<CartItemDto> items = cartItemService.getCartItems();
         BigDecimal totalPrice = priceService.calculatePrice(items);
 
         model.addAttribute("items", items);
@@ -39,7 +39,7 @@ public class CartController {
             @RequestParam(value = "id") Long itemId,
             @RequestParam(value = "action") CartItemAction action
     ) {
-        cartService.updateCartItemCount(itemId, action);
+        cartItemService.updateCartItemCount(itemId, action);
 
         return "redirect:/cart/items";
     }

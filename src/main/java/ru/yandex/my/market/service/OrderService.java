@@ -24,7 +24,7 @@ public class OrderService {
 
     private final OrderRepository orderRepo;
     private final ItemRepository itemRepo;
-    private final CartService cartService;
+    private final CartItemService cartItemService;
     private final PriceService priceService;
     private final OrderMapper orderMapper;
 
@@ -51,9 +51,9 @@ public class OrderService {
     public OrderDto createOrder() {
         log.info("Начинаем процесс создания заказа");
 
-        List<CartItemDto> cartItems = cartService.getCartItems();
+        List<CartItemDto> cartItems = cartItemService.getCartItems();
 
-        cartService.deleteCartItems();
+        cartItemService.deleteCartItems();
 
         OrderEnt order = createOrder(cartItems);
         orderRepo.save(order);
