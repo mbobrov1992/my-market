@@ -1,0 +1,43 @@
+.products-row {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.products-row > .col {
+    display: flex;
+}
+
+.products-row > .col > .card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-body {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.card img {
+    width: 100%;
+    height: 300px;
+    object-fit: contain;
+    display: block;
+}
+
+.card-text {
+    min-height: 3rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.card-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
