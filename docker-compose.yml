@@ -19,9 +19,12 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/my_market
-      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_LIQUIBASE_URL: jdbc:postgresql://postgres:5432/my_market
+      SPRING_LIQUIBASE_USER: ${DB_USERNAME}
+      SPRING_LIQUIBASE_PASSWORD: ${DB_PASSWORD}
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/my_market
+      SPRING_R2DBC_USERNAME: ${DB_USERNAME}
+      SPRING_R2DBC_PASSWORD: ${DB_PASSWORD}
     depends_on:
       - postgres
 

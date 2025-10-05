@@ -1,8 +1,12 @@
 spring:
   application:
     name: my-market
-  datasource:
+  liquibase:
     url: jdbc:postgresql://${DB_HOST:localhost}:5432/my_market
+    user: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  r2dbc:
+    url: r2dbc:postgresql://${DB_HOST:localhost}:5432/my_market
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   thymeleaf:
