@@ -1,42 +1,31 @@
 package ru.yandex.my.market.model.entity;
 
-import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@Entity
-@Table(name = "item")
-public class ItemEnt {
+@Table("item")
+public class ItemEnt extends AuditableEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
+    @Column("id")
     private long id;
 
-    @Column(name = "title")
+    @Column("title")
     private String title;
 
-    @Column(name = "image_path")
+    @Column("image_path")
     private String imagePath;
 
-    @Column(name = "description")
+    @Column("description")
     private String description;
 
-    @Column(name = "price")
+    @Column("price")
     private BigDecimal price;
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 }

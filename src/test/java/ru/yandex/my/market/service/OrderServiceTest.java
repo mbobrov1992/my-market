@@ -3,7 +3,6 @@ package ru.yandex.my.market.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.my.market.AbstractIntegrationTest;
 import ru.yandex.my.market.model.dto.OrderDto;
 import ru.yandex.my.market.model.entity.CartItemEnt;
@@ -19,7 +18,6 @@ import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Transactional
 public class OrderServiceTest extends AbstractIntegrationTest {
 
     @Autowired
@@ -37,47 +35,48 @@ public class OrderServiceTest extends AbstractIntegrationTest {
     @BeforeEach
     void setup() {
         ItemEnt item1 = getMockItem();
-        itemRepo.save(item1);
+        itemRepo.save(item1).block();
 
         CartItemEnt cartItem1 = new CartItemEnt();
-        cartItem1.setItem(item1);
+        cartItem1.setItemId(item1.getId());
         cartItem1.setCount(5);
-        cartItemRepo.save(cartItem1);
+        cartItemRepo.save(cartItem1).block();
 
         ItemEnt item2 = getMockItem();
-        itemRepo.save(item2);
+        itemRepo.save(item2).block();
 
         CartItemEnt cartItem2 = new CartItemEnt();
-        cartItem2.setItem(item2);
+        cartItem2.setItemId(item2.getId());
         cartItem2.setCount(5);
-        cartItemRepo.save(cartItem2);
+        cartItemRepo.save(cartItem2).block();
 
-        orderRepo.deleteAll();
+        orderRepo.deleteAll().block();
     }
 
     @Test
     void testCreateOrder() {
-        OrderDto orderDto = orderService.createOrder();
+        Long orderId = orderService.createOrder().block();
 
-        assertThat(orderDto).isNotNull();
-        assertThat(orderDto.totalSum()).isGreaterThan(BigDecimal.ZERO);
-        assertThat(orderDto.items()).isNotEmpty();
+        assertThat(orderId).isNotNull();
 
-        List<OrderEnt> orderEnts = orderRepo.findAll();
+        List<OrderEnt> orderEnts = orderRepo.findAll().collectList().block();
         assertThat(orderEnts).isNotEmpty();
-        assertThat(orderEnts.get(0).getTotalPrice()).isEqualTo(orderDto.totalSum());
+        assertThat(orderEnts.getFirst().getId()).isEqualTo(orderId);
 
-        assertThat(cartItemRepo.findAll()).isEmpty();
+        assertThat(cartItemRepo.findAll().collectList().block()).isEmpty();
     }
 
     @Test
     void testGetOrders_andGetOrder() {
-        OrderDto orderDto = orderService.createOrder();
+        Long orderId = orderService.createOrder().block();
 
-        List<OrderDto> orderDtos = orderService.getOrders();
+        List<OrderDto> orderDtos = orderService.getOrders().collectList().block();
         assertThat(orderDtos).hasSize(1);
+        assertThat(orderDtos.getFirst().id()).isEqualTo(orderId);
 
-        assertThat(orderService.getOrder(orderDto.id())).isEqualTo(orderDto);
+        OrderDto orderDto = orderService.getOrder(orderId).block();
+        assertThat(orderDto).isNotNull();
+        assertThat(orderDto.id()).isEqualTo(orderId);
     }
 
     private ItemEnt getMockItem() {

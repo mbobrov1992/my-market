@@ -2,79 +2,94 @@ package ru.yandex.my.market.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.yandex.my.market.model.dto.OrderDto;
 import ru.yandex.my.market.service.OrderService;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.Mockito.*;
 
-@WebMvcTest(OrderController.class)
+@WebFluxTest(OrderController.class)
 class OrderControllerTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private WebTestClient webTestClient;
 
     @MockitoBean
     private OrderService orderService;
 
     @Test
-    void testGetOrders() throws Exception {
+    void testGetOrders() {
         OrderDto mockOrder = new OrderDto(1L, List.of(), BigDecimal.ONE);
         List<OrderDto> mockOrders = List.of(mockOrder);
 
-        when(orderService.getOrders()).thenReturn(mockOrders);
+        when(orderService.getOrders()).thenReturn(Flux.fromIterable(mockOrders));
 
-        mockMvc.perform(get("/orders"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("orders"))
-                .andExpect(model().attribute("orders", mockOrders));
+        webTestClient.get()
+                .uri("/orders")
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(orderService, times(1))
+                .getOrders();
     }
 
     @Test
-    void testGetOrderWithNewOrderParam() throws Exception {
-        OrderDto mockOrder = new OrderDto(1L, List.of(), BigDecimal.ONE);
+    void testGetOrderWithNewOrderParam() {
+        final long orderId = 1L;
 
-        when(orderService.getOrder(1L)).thenReturn(mockOrder);
+        OrderDto mockOrder = new OrderDto(orderId, List.of(), BigDecimal.ONE);
 
-        mockMvc.perform(get("/orders/1")
-                        .param("newOrder", "true"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("order"))
-                .andExpect(model().attribute("order", mockOrder))
-                .andExpect(model().attribute("newOrder", true));
+        when(orderService.getOrder(orderId)).thenReturn(Mono.just(mockOrder));
+
+        webTestClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/orders/{id}")
+                        .queryParam("newOrder", true)
+                        .build(orderId))
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(orderService, times(1))
+                .getOrder(orderId);
     }
 
     @Test
-    void testGetOrderWithoutNewOrderParam() throws Exception {
-        OrderDto mockOrder = new OrderDto(1L, List.of(), BigDecimal.ONE);
+    void testGetOrderWithoutNewOrderParam() {
+        final long orderId = 1L;
 
-        when(orderService.getOrder(1L)).thenReturn(mockOrder);
+        OrderDto mockOrder = new OrderDto(orderId, List.of(), BigDecimal.ONE);
 
-        mockMvc.perform(get("/orders/1"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("order"))
-                .andExpect(model().attribute("order", mockOrder))
-                .andExpect(model().attribute("newOrder", false));
+        when(orderService.getOrder(orderId)).thenReturn(Mono.just(mockOrder));
+
+        webTestClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/orders/{id}")
+                        .build(orderId))
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(orderService, times(1))
+                .getOrder(orderId);
     }
 
     @Test
-    void testBuy() throws Exception {
-        OrderDto mockOrder = new OrderDto(1L, List.of(), BigDecimal.ONE);
+    void testBuy() {
+        final long orderId = 1L;
 
-        when(orderService.createOrder()).thenReturn(mockOrder);
+        when(orderService.createOrder()).thenReturn(Mono.just(orderId));
 
-        ResultActions result = mockMvc.perform(post("/buy"));
+        webTestClient.post()
+                .uri("/buy")
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/orders/" + orderId + "?newOrder=true");
 
-        result.andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/orders/" + mockOrder.id() + "?newOrder=true"));
+        verify(orderService, times(1))
+                .createOrder();
     }
 }
