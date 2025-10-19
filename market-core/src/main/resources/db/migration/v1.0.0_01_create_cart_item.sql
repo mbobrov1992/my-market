@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS cart_item
+(
+    id         BIGSERIAL PRIMARY KEY,
+    item_id    BIGINT    NOT NULL REFERENCES item (id) ON DELETE CASCADE,
+    count      INTEGER   NOT NULL CHECK (count > 0),
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+ALTER TABLE cart_item
+    ADD CONSTRAINT unique_item_id UNIQUE (item_id);

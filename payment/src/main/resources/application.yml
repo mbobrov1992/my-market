@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: payment
+
+logging:
+  level:
+    root: INFO
