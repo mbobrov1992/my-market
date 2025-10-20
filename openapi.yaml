@@ -1,0 +1,121 @@
+openapi: 3.1.0
+
+info:
+  title: Payment API
+  version: 1.0.0
+
+tags:
+  - name: Payment
+    description: Операции со счетом пользователя
+
+paths:
+  /balance/{userId}:
+    get:
+      operationId: getBalance
+      summary: Получение баланса
+      tags: [ 'Payment' ]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Идентификатор пользователя
+      responses:
+        '200':
+          description: Баланс успешно получен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /payment:
+    post:
+      operationId: pay
+      summary: Осуществление платежа
+      tags: [ 'Payment' ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+
+      responses:
+        '200':
+          description: Платеж успешно проведён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+
+        '400':
+          description: Ошибка платежа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    BalanceResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        balance:
+          type: string
+          format: decimal
+    PaymentRequest:
+      type: object
+      required: [ userId, amount ]
+      properties:
+        userId:
+          type: string
+        amount:
+          type: string
+          format: decimal
+    PaymentResponse:
+      type: object
+      properties:
+        transaction-id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        message:
+          type: string
+        newBalance:
+          type: string
+          format: decimal
+    PaymentStatus:
+      type: string
+      enum: [ SUCCESS, FAILED ]
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
