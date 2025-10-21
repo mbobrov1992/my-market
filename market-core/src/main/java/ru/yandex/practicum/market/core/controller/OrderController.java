@@ -41,6 +41,8 @@ public class OrderController {
     public Mono<Rendering> buy() {
         return orderService.createOrder()
                 .map(orderId -> Rendering.redirectTo("/orders/" + orderId + "?newOrder=true")
+                        .build())
+                .onErrorReturn(Rendering.redirectTo("/cart/items")
                         .build());
     }
 }

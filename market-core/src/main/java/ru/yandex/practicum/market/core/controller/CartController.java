@@ -9,22 +9,20 @@ import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Mono;
 import ru.yandex.practicum.market.core.model.dto.CartItemUpdateForm;
 import ru.yandex.practicum.market.core.service.CartItemService;
-import ru.yandex.practicum.market.core.service.PriceService;
 
 @RequiredArgsConstructor
 @Controller
 public class CartController {
 
     private final CartItemService cartItemService;
-    private final PriceService priceService;
 
     @GetMapping("/cart/items")
     public Mono<Rendering> getCartItems() {
-        return cartItemService.getCartItems()
-                .collectList()
-                .map(cartItems -> Rendering.view("cart")
-                        .modelAttribute("items", cartItems)
-                        .modelAttribute("total", priceService.calculatePrice(cartItems))
+        return cartItemService.getCartView()
+                .map(cartView -> Rendering.view("cart")
+                        .modelAttribute("items", cartView.cartItems())
+                        .modelAttribute("total", cartView.totalPrice())
+                        .modelAttribute("paymentInfo", cartView.paymentInfo())
                         .build());
     }
 

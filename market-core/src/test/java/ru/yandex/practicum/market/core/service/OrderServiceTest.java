@@ -3,8 +3,11 @@ package ru.yandex.practicum.market.core.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import reactor.core.publisher.Mono;
 import ru.yandex.practicum.market.core.AbstractIntegrationTest;
 import ru.yandex.practicum.market.core.model.dto.OrderDto;
+import ru.yandex.practicum.market.core.model.dto.PaymentResponse;
 import ru.yandex.practicum.market.core.model.entity.CartItemEnt;
 import ru.yandex.practicum.market.core.model.entity.ItemEnt;
 import ru.yandex.practicum.market.core.model.entity.OrderEnt;
@@ -17,6 +20,8 @@ import java.util.List;
 import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 public class OrderServiceTest extends AbstractIntegrationTest {
 
@@ -31,6 +36,9 @@ public class OrderServiceTest extends AbstractIntegrationTest {
 
     @Autowired
     private CartItemRepository cartItemRepo;
+
+    @MockitoBean
+    private PaymentService paymentService;
 
     @BeforeEach
     void setup() {
@@ -55,6 +63,9 @@ public class OrderServiceTest extends AbstractIntegrationTest {
 
     @Test
     void testCreateOrder() {
+        when(paymentService.pay(any()))
+                .thenReturn(Mono.just(new PaymentResponse()));
+
         Long orderId = orderService.createOrder().block();
 
         assertThat(orderId).isNotNull();
@@ -68,6 +79,9 @@ public class OrderServiceTest extends AbstractIntegrationTest {
 
     @Test
     void testGetOrders_andGetOrder() {
+        when(paymentService.pay(any()))
+                .thenReturn(Mono.just(new PaymentResponse()));
+
         Long orderId = orderService.createOrder().block();
 
         List<OrderDto> orderDtos = orderService.getOrders().collectList().block();

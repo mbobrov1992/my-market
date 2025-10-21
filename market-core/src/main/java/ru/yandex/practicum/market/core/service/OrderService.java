@@ -9,9 +9,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.yandex.practicum.market.core.exception.OrderCreationException;
 import ru.yandex.practicum.market.core.exception.OrderNotFoundException;
-import ru.yandex.practicum.market.core.model.dto.CartItemDto;
-import ru.yandex.practicum.market.core.model.dto.OrderDto;
-import ru.yandex.practicum.market.core.model.dto.OrderItemDto;
+import ru.yandex.practicum.market.core.model.dto.*;
 import ru.yandex.practicum.market.core.model.entity.ItemEnt;
 import ru.yandex.practicum.market.core.model.entity.OrderEnt;
 import ru.yandex.practicum.market.core.model.entity.OrderItemEnt;
@@ -34,6 +32,7 @@ public class OrderService {
     private final ItemRepository itemRepo;
     private final CartItemService cartItemService;
     private final PriceService priceService;
+    private final PaymentService paymentService;
 
     @Transactional(readOnly = true)
     public Flux<OrderDto> getOrders() {
@@ -117,8 +116,8 @@ public class OrderService {
 
         return cartItemService.getCartItems()
                 .collectList()
-                .flatMap(cartItems -> cartItemService.deleteCartItems().thenReturn(cartItems))
                 .flatMap(this::createOrder)
+                .flatMap(order -> cartItemService.deleteCartItems().thenReturn(order))
                 .doOnSuccess(order -> log.info("Создан заказ с id: {}", order.getId()))
                 .map(OrderEnt::getId);
     }
@@ -128,13 +127,20 @@ public class OrderService {
             throw new OrderCreationException("Отсутствуют товары в корзине");
         }
 
-        OrderEnt order = new OrderEnt();
-        order.setTotalPrice(calculatePrice(cartItems));
+        BigDecimal totalPrice = calculatePrice(cartItems);
 
-        return orderRepo.save(order)
-                .flatMap(orderEnt -> createOrderItems(orderEnt, cartItems)
-                        .collectList()
-                        .thenReturn(orderEnt));
+        PaymentRequest payment = new PaymentRequest();
+        payment.setAmount(totalPrice);
+
+        OrderEnt order = new OrderEnt();
+        order.setTotalPrice(totalPrice);
+
+        return paymentService.pay(payment)
+                .then(orderRepo.save(order)
+                        .flatMap(orderEnt -> createOrderItems(orderEnt, cartItems)
+                                .collectList()
+                                .thenReturn(orderEnt))
+                );
     }
 
     private Flux<OrderItemEnt> createOrderItems(OrderEnt order, List<CartItemDto> cartItems) {

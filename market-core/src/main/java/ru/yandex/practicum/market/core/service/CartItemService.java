@@ -12,13 +12,16 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.yandex.practicum.market.core.exception.ItemNotFoundException;
 import ru.yandex.practicum.market.core.mapper.ItemMapper;
+import ru.yandex.practicum.market.core.model.dto.PaymentInfo;
 import ru.yandex.practicum.market.core.model.dto.CartItemDto;
+import ru.yandex.practicum.market.core.model.dto.CartViewDto;
 import ru.yandex.practicum.market.core.model.dto.ItemDto;
 import ru.yandex.practicum.market.core.model.entity.CartItemEnt;
 import ru.yandex.practicum.market.core.model.enums.CartItemAction;
 import ru.yandex.practicum.market.core.repository.CartItemRepository;
 import ru.yandex.practicum.market.core.repository.ItemRepository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +36,8 @@ public class CartItemService {
     private final CartItemRepository cartItemRepo;
     private final ItemRepository itemRepo;
     private final ItemMapper itemMapper;
+    private final PriceService priceService;
+    private final PaymentService paymentService;
 
     @Transactional(readOnly = true)
     public Mono<Page<CartItemDto>> getItems(String search, Pageable pageable) {
@@ -121,6 +126,27 @@ public class CartItemService {
         return cartItemRepo.save(cartItem)
                 .doOnSuccess(result -> log.info("Товар c id {} успешно добавлен в корзину", itemId))
                 .doOnError(ex -> log.error("Ошибка добавления товара с id {} в корзину: {}", itemId, ex.getMessage()));
+    }
+
+    @Transactional(readOnly = true)
+    public Mono<CartViewDto> getCartView() {
+        return getCartItems()
+                .collectList()
+                .flatMap(cartItems -> {
+                    BigDecimal totalPrice = priceService.calculatePrice(cartItems);
+                    return paymentService.getBalance()
+                            .map(response -> new CartViewDto(
+                                    cartItems,
+                                    totalPrice,
+                                    new PaymentInfo(response.getBalance(), true)
+                            ))
+                            .onErrorReturn(
+                                    new CartViewDto(
+                                            cartItems,
+                                            totalPrice,
+                                            new PaymentInfo(null, false))
+                            );
+                });
     }
 
     @Transactional(readOnly = true)

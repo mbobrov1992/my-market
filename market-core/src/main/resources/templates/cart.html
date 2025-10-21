@@ -54,7 +54,15 @@
             <form action="/buy" method="post" th:if="${!items.isEmpty()}">
                 <div class="hstack gap-3">
                     <h2 th:text="'Итого: '+${total}+' руб.'"/>
-                    <button class="btn btn-warning ms-auto">Купить</button>
+                    <button class="btn btn-warning ms-auto"
+                            th:disabled="${paymentInfo.balance() < total or !paymentInfo.serviceAvailable()}">
+                        Купить
+                    </button>
+                </div>
+                <div class="text-end">
+                    <p th:if="${paymentInfo.serviceAvailable() and paymentInfo.balance() >= total}" th:text="'Баланс: ' + ${paymentInfo.balance()} + ' руб.'"></p>
+                    <p th:if="${paymentInfo.serviceAvailable() and paymentInfo.balance() < total}" class="text-danger">Недостаточно средств на балансе</p>
+                    <p th:if="${!paymentInfo.serviceAvailable()}" class="text-danger">Сервис платежей временно недоступен</p>
                 </div>
             </form>
         </div>

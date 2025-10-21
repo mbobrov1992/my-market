@@ -6,12 +6,12 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.yandex.practicum.market.core.model.dto.CartItemDto;
+import ru.yandex.practicum.market.core.model.dto.CartViewDto;
+import ru.yandex.practicum.market.core.model.dto.PaymentInfo;
 import ru.yandex.practicum.market.core.model.enums.CartItemAction;
 import ru.yandex.practicum.market.core.service.CartItemService;
-import ru.yandex.practicum.market.core.service.PriceService;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -27,17 +27,14 @@ class CartControllerTest {
     @MockitoBean
     private CartItemService cartItemService;
 
-    @MockitoBean
-    private PriceService priceService;
-
     @Test
     void testGetCartItems() {
         CartItemDto mockItem = CartItemDto.MOCK;
         List<CartItemDto> mockItems = List.of(mockItem);
         BigDecimal mockTotalPrice = BigDecimal.valueOf(100);
+        PaymentInfo mockPaymentInfo = new PaymentInfo(null, true);
 
-        when(cartItemService.getCartItems()).thenReturn(Flux.fromIterable(mockItems));
-        when(priceService.calculatePrice(mockItems)).thenReturn(mockTotalPrice);
+        when(cartItemService.getCartView()).thenReturn(Mono.just(new CartViewDto(mockItems, mockTotalPrice, mockPaymentInfo)));
 
         webTestClient.get()
                 .uri("/cart/items")
@@ -45,7 +42,7 @@ class CartControllerTest {
                 .expectStatus().isOk();
 
         verify(cartItemService, times(1))
-                .getCartItems();
+                .getCartView();
     }
 
     @Test

@@ -41,11 +41,17 @@ public class CartItemServiceTest {
     @MockitoBean
     private ItemMapper itemMapper;
 
+    @MockitoBean
+    private PriceService priceService;
+
+    @MockitoBean
+    private PaymentService paymentService;
+
     private CartItemService cartItemService;
 
     @BeforeEach
     void setUp() {
-        cartItemService = new CartItemService(cartItemRepo, itemRepo, itemMapper);
+        cartItemService = new CartItemService(cartItemRepo, itemRepo, itemMapper, priceService, paymentService);
     }
 
     @Test
