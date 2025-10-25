@@ -3,7 +3,7 @@
 Приложение состоит из подмодулей:
 
 - market-core - это реактивное веб-приложение, предназначенное для поиска, просмотра и заказа товаров.  
-Использует Spring Boot, Spring WebFlux, Thymeleaf для шаблонов и базу данных PostgreSQL.
+Использует Spring Boot, Spring WebFlux, Thymeleaf для шаблонов, базу данных PostgreSQL и Redis для кэша товаров.
 
 - payment - реактивное веб-приложение, предназначенное для управления балансом пользователя.  
 Использует Spring Boot и Spring WebFlux.
@@ -14,6 +14,7 @@
 
 - Java 21
 - PostgreSQL (рекомендуется версия 17+)
+- Redis 7.4+
 - Maven 3.6+
 
 ---
@@ -28,6 +29,11 @@
 - `DB_HOST` — адрес сервера базы данных (по умолчанию `localhost`)
 - `DB_USERNAME` — имя пользователя PostgreSQL
 - `DB_PASSWORD` — пароль пользователя PostgreSQL
+
+### Настройка подключения к Redis
+
+Приложение использует Redis для кэша. Параметры подключения задаются через переменные окружения или значения по умолчанию в `application.yml`:
+- `REDIS_HOST` — адрес сервера Redis (по умолчанию `localhost`)
 
 ---
 
@@ -60,7 +66,7 @@
 
 Запустите контейнеры, используя команду:  
 `docker compose up`  
-Будут запущены контейнеры: `postgres`, `market-core` и `payment`.  
+Будут запущены контейнеры: `postgres`, `redis`, `market-core` и `payment`.  
 Конфигурация и внешние порты описаны в [docker-compose.yml](./docker-compose.yml)
 
 Доступ к приложению будет по адресу:

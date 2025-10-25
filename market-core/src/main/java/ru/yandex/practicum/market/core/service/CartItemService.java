@@ -19,6 +19,7 @@ import ru.yandex.practicum.market.core.model.dto.ItemDto;
 import ru.yandex.practicum.market.core.model.entity.CartItemEnt;
 import ru.yandex.practicum.market.core.model.enums.CartItemAction;
 import ru.yandex.practicum.market.core.repository.CartItemRepository;
+import ru.yandex.practicum.market.core.repository.ItemCacheRepository;
 import ru.yandex.practicum.market.core.repository.ItemRepository;
 
 import java.math.BigDecimal;
@@ -35,6 +36,7 @@ public class CartItemService {
 
     private final CartItemRepository cartItemRepo;
     private final ItemRepository itemRepo;
+    private final ItemCacheRepository itemCacheRepo;
     private final ItemMapper itemMapper;
     private final PriceService priceService;
     private final PaymentService paymentService;
@@ -66,7 +68,9 @@ public class CartItemService {
     public Mono<CartItemDto> getItem(Long id) {
         log.info("Получаем товар c id {}", id);
 
-        return itemRepo.findById(id)
+        return itemCacheRepo.findById(id)
+                .switchIfEmpty(itemRepo.findById(id)
+                        .flatMap(itemCacheRepo::save))
                 .map(itemMapper::toDto)
                 .flatMap(dto -> getCartItemCount(List.of(id)).map(map -> new CartItemDto(dto, map.get(id))))
                 .switchIfEmpty(Mono.error(() -> new ItemNotFoundException(id)));

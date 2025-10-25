@@ -9,11 +9,19 @@ spring:
     url: r2dbc:postgresql://${DB_HOST:localhost}:5432/my_market
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
   thymeleaf:
     prefix: classpath:/templates/
     suffix: .html
     mode: HTML
     encoding: UTF-8
+
+cache:
+  item:
+    ttl: PT30S
 
 logging:
   level:

@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import reactor.core.publisher.Mono;
 import ru.yandex.practicum.market.core.config.TestcontainersConfig;
 import ru.yandex.practicum.market.core.mapper.ItemMapper;
 import ru.yandex.practicum.market.core.model.dto.CartItemDto;
@@ -18,6 +19,7 @@ import ru.yandex.practicum.market.core.model.entity.CartItemEnt;
 import ru.yandex.practicum.market.core.model.entity.ItemEnt;
 import ru.yandex.practicum.market.core.model.enums.CartItemAction;
 import ru.yandex.practicum.market.core.repository.CartItemRepository;
+import ru.yandex.practicum.market.core.repository.ItemCacheRepository;
 import ru.yandex.practicum.market.core.repository.ItemRepository;
 
 import java.math.BigDecimal;
@@ -27,6 +29,7 @@ import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 
 @DataR2dbcTest
 @Import(TestcontainersConfig.class)
@@ -37,6 +40,9 @@ public class CartItemServiceTest {
 
     @Autowired
     private ItemRepository itemRepo;
+
+    @MockitoBean
+    private ItemCacheRepository itemCacheRepo;
 
     @MockitoBean
     private ItemMapper itemMapper;
@@ -51,7 +57,7 @@ public class CartItemServiceTest {
 
     @BeforeEach
     void setUp() {
-        cartItemService = new CartItemService(cartItemRepo, itemRepo, itemMapper, priceService, paymentService);
+        cartItemService = new CartItemService(cartItemRepo, itemRepo, itemCacheRepo, itemMapper, priceService, paymentService);
     }
 
     @Test
@@ -73,20 +79,52 @@ public class CartItemServiceTest {
     }
 
     @Test
-    void testGetItem() {
+    void testGetItem_withCachedItem() {
         ItemEnt item = new ItemEnt();
         item.setTitle("Тестовый товар");
         item.setDescription("Описание");
         item.setPrice(BigDecimal.ONE);
-        itemRepo.save(item).block();
+        item = itemRepo.save(item).block();
+        assertThat(item).isNotNull();
+
+        Mockito.when(itemCacheRepo.findById(item.getId())).thenReturn(Mono.just(item));
 
         ItemDto dto = new ItemDto(1, null, null, null, null);
         Mockito.when(itemMapper.toDto(any(ItemEnt.class))).thenReturn(dto);
 
         CartItemDto result = cartItemService.getItem(item.getId()).block();
-
         assertThat(result).isNotNull();
         assertThat(result.count()).isEqualTo(0);
+
+        Mockito.verify(itemCacheRepo, times(1))
+                .findById(item.getId());
+        Mockito.verify(itemCacheRepo, times(0))
+                .save(item);
+    }
+
+    @Test
+    void testGetItem_withNonCachedItem() {
+        ItemEnt item = new ItemEnt();
+        item.setTitle("Тестовый товар");
+        item.setDescription("Описание");
+        item.setPrice(BigDecimal.ONE);
+        item = itemRepo.save(item).block();
+        assertThat(item).isNotNull();
+
+        Mockito.when(itemCacheRepo.findById(item.getId())).thenReturn(Mono.empty());
+        Mockito.when(itemCacheRepo.save(any(ItemEnt.class))).thenReturn(Mono.just(item));
+
+        ItemDto dto = new ItemDto(1, null, null, null, null);
+        Mockito.when(itemMapper.toDto(any(ItemEnt.class))).thenReturn(dto);
+
+        CartItemDto result = cartItemService.getItem(item.getId()).block();
+        assertThat(result).isNotNull();
+        assertThat(result.count()).isEqualTo(0);
+
+        Mockito.verify(itemCacheRepo, times(1))
+                .findById(item.getId());
+        Mockito.verify(itemCacheRepo, times(1))
+                .save(any(ItemEnt.class));
     }
 
     @Test

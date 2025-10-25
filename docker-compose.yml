@@ -13,6 +13,14 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7.4.2-bookworm
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
   market-core:
     image: market-core:latest
     container_name: market-core
@@ -25,9 +33,11 @@ services:
       SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/my_market
       SPRING_R2DBC_USERNAME: ${DB_USERNAME}
       SPRING_R2DBC_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
       PAYMENT_SERVICE_URL: http://payment:8080
     depends_on:
       - postgres
+      - redis
 
   payment:
     image: payment:latest
@@ -37,3 +47,4 @@ services:
 
 volumes:
   pgdata:
+  redisdata:
