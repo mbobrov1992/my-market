@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: payment
+
+balance:
+  initial-value: 10000
+
+logging:
+  level:
+    root: INFO
