@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8"/>
+    <title>Выход</title>
+</head>
+
+<body>
+<form action="/logout" method="post"
+      style="max-width: 300px; margin: auto; padding: 1em; border: 1px solid #ccc; border-radius: 5px; text-align: center;">
+    <div style="margin-bottom: 1em; width: 100%; overflow-wrap: break-word;">
+        <p>Вы действительно хотите выйти?</p>
+    </div>
+    <div style="display: flex; gap: 10px; justify-content: center;">
+        <button type="submit"
+                style="flex-grow: 1;
+                padding: 0.7em;
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 3px;
+                cursor: pointer;">Выйти
+        </button>
+        <button type="button" onclick="history.back()"
+                style="flex-grow: 1;
+                padding: 0.7em;
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 3px;
+                cursor: pointer;">Назад
+        </button>
+    </div>
+</form>
+</body>
+
+</html>

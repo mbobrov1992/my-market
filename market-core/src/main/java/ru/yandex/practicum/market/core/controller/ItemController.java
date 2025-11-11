@@ -24,8 +24,9 @@ public class ItemController {
     private final CartItemService cartItemService;
 
     @GetMapping("/")
-    public String redirect() {
-        return "redirect:/items";
+    public Mono<Rendering> redirect() {
+        return Mono.just(Rendering.redirectTo("/items")
+                .build());
     }
 
     @GetMapping("/items")
