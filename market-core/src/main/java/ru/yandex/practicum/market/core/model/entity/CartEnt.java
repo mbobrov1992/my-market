@@ -8,19 +8,13 @@ import org.springframework.data.relational.core.mapping.Table;
 
 @Getter
 @Setter
-@Table("cart_item")
-public class CartItemEnt extends AuditableEntity {
+@Table("cart")
+public class CartEnt extends AuditableEntity {
 
     @Id
     @Column("id")
     private long id;
 
-    @Column("cart_id")
-    private long cartId;
-
-    @Column("item_id")
-    private long itemId;
-
-    @Column("count")
-    private Integer count;
+    @Column("user_id")
+    private long userId;
 }

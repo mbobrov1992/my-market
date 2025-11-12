@@ -15,6 +15,8 @@ import ru.yandex.practicum.market.core.model.dto.ItemFilterForm;
 import ru.yandex.practicum.market.core.model.dto.CartItemDto;
 import ru.yandex.practicum.market.core.service.CartItemService;
 
+import java.security.Principal;
+
 import static ru.yandex.practicum.market.core.util.ListUtil.chunkWithPadding;
 
 @RequiredArgsConstructor
@@ -31,6 +33,7 @@ public class ItemController {
 
     @GetMapping("/items")
     public Mono<Rendering> getItems(
+            Mono<Principal> principal,
             @ModelAttribute ItemFilterForm filter
     ) {
         Pageable pageable = PageRequest.of(
@@ -39,46 +42,53 @@ public class ItemController {
                 filter.getSort().getSort()
         );
 
-        return cartItemService.getItems(filter.getSearch(), pageable)
-                .map(itemPage -> Rendering.view("items")
-                        .modelAttribute("search", filter.getSearch())
-                        .modelAttribute("paging", itemPage)
-                        .modelAttribute("sort", filter.getSort().name())
-                        .modelAttribute("items", chunkWithPadding(itemPage.get().toList(), 3, CartItemDto.MOCK))
-                        .build());
+        return principal.map(Principal::getName)
+                .flatMap(username -> cartItemService.getItems(username, filter.getSearch(), pageable)
+                        .map(itemPage -> Rendering.view("items")
+                                .modelAttribute("search", filter.getSearch())
+                                .modelAttribute("paging", itemPage)
+                                .modelAttribute("sort", filter.getSort().name())
+                                .modelAttribute("items", chunkWithPadding(itemPage.get().toList(), 3, CartItemDto.MOCK))
+                                .build()));
     }
 
     @PostMapping("/items")
     public Mono<Rendering> updateCartItemCountFromItemsView(
+            Mono<Principal> principal,
             @ModelAttribute CartItemUpdateForm updateRequest,
             @ModelAttribute ItemFilterForm filter
     ) {
-        return cartItemService.updateCartItemCount(updateRequest.id(), updateRequest.action())
-                .then(Mono.just(Rendering.redirectTo("/items")
-                        .modelAttribute("search", filter.getSearch())
-                        .modelAttribute("pageNumber", filter.getPageNumber())
-                        .modelAttribute("pageSize", filter.getPageSize())
-                        .modelAttribute("sort", filter.getSort().name())
-                        .build()));
+        return principal.map(Principal::getName)
+                .flatMap(username -> cartItemService.updateCartItemCount(username, updateRequest.id(), updateRequest.action())
+                        .then(Mono.just(Rendering.redirectTo("/items")
+                                .modelAttribute("search", filter.getSearch())
+                                .modelAttribute("pageNumber", filter.getPageNumber())
+                                .modelAttribute("pageSize", filter.getPageSize())
+                                .modelAttribute("sort", filter.getSort().name())
+                                .build())));
     }
 
     @GetMapping("/items/{id}")
     public Mono<Rendering> getItem(
+            Mono<Principal> principal,
             @PathVariable(value = "id") Long id
     ) {
-        return cartItemService.getItem(id)
-                .map(item -> Rendering.view("item")
-                        .modelAttribute("item", item)
-                        .build());
+        return principal.map(Principal::getName)
+                .flatMap(username -> cartItemService.getItem(username, id)
+                        .map(item -> Rendering.view("item")
+                                .modelAttribute("item", item)
+                                .build()));
     }
 
     @PostMapping("/items/{id}")
     public Mono<Rendering> updateCartItemCountFromItemView(
+            Mono<Principal> principal,
             @PathVariable(value = "id") Long itemId,
             @ModelAttribute CartItemUpdateForm updateRequest
     ) {
-        return cartItemService.updateCartItemCount(itemId, updateRequest.action())
-                .then(Mono.just(Rendering.redirectTo("/items/" + itemId)
-                        .build()));
+        return principal.map(Principal::getName)
+                .flatMap(username -> cartItemService.updateCartItemCount(username, itemId, updateRequest.action())
+                        .then(Mono.just(Rendering.redirectTo("/items/" + itemId)
+                                .build())));
     }
 }
