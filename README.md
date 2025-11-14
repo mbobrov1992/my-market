@@ -75,16 +75,30 @@
 ### Команды для сборки и запуска в Docker
 Создайте Docker-образы, используя команды:  
 
-`docker build -t market-core ./market-core`  
+```bash
+docker build -t market-core ./market-core
+```
 Будет создан образ с именем `market-core` на основе [Dockerfile](market-core/Dockerfile)
 
-`docker build -t payment ./payment`  
+```bash
+docker build -t payment ./payment
+```
 Будет создан образ с именем `payment` на основе [Dockerfile](payment/Dockerfile)
 
-Запустите контейнеры, используя команду:  
-`docker compose up`  
-Будут запущены контейнеры: `postgres`, `redis`, `keycloak`, `market-core` и `payment`.  
-Конфигурация и внешние порты описаны в [docker-compose.yml](./docker-compose.yml)
+Конфигурация и внешние порты описаны в [docker-compose.yml](./docker-compose.yml).  
+
+Переменные, используемые в файле [docker-compose.yml](./docker-compose.yml), могут быть заданы в файле [.env](./.env),  
+расположенном рядом с [docker-compose.yml](./docker-compose.yml).  
+Docker Compose автоматически подгружает переменные из этого файла, например:
+```text
+DB_USERNAME=admin
+```
+
+Запустите контейнеры, используя команду:
+```bash
+docker compose up
+```
+Будут запущены контейнеры: `postgres`, `redis`, `keycloak`, `market-core` и `payment`.
 
 Доступ к приложению будет по адресу:
 `http://<host>:<port>/`

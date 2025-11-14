@@ -21,6 +21,18 @@ services:
     volumes:
       - redisdata:/data
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.1
+    container_name: keycloak
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    command: start-dev
+    ports:
+      - "7070:8080"
+    volumes:
+      - keycloakdata:/opt/keycloak/data
+
   market-core:
     image: market-core:latest
     container_name: market-core
@@ -34,17 +46,26 @@ services:
       SPRING_R2DBC_USERNAME: ${DB_USERNAME}
       SPRING_R2DBC_PASSWORD: ${DB_PASSWORD}
       SPRING_DATA_REDIS_HOST: redis
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
       PAYMENT_SERVICE_URL: http://payment:8080
     depends_on:
       - postgres
       - redis
+      - keycloak
 
   payment:
     image: payment:latest
     container_name: payment
     ports:
       - "9090:8080"
+    environment:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${KEYCLOAK_ISSUER_URI}
+    depends_on:
+      - keycloak
 
 volumes:
   pgdata:
   redisdata:
+  keycloakdata:
