@@ -18,6 +18,18 @@ spring:
     suffix: .html
     mode: HTML
     encoding: UTF-8
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            issuer-uri: ${KEYCLOAK_ISSUER_URI}
+        registration:
+          keycloak:
+            authorization-grant-type: client_credentials
+            provider: keycloak
+            client-id: ${KEYCLOAK_CLIENT_ID}
+            client-secret: ${KEYCLOAK_CLIENT_SECRET}
 
 cache:
   item:

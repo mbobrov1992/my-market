@@ -19,7 +19,13 @@ public class PaymentService {
     private final PaymentApi paymentApi;
 
     public Mono<BalanceResponse> getBalance(String userId) {
-        return paymentApi.getBalance(userId);
+        log.debug("Получаем баланс счета пользователя с id: {}", userId);
+
+        return paymentApi.getBalance(userId)
+                .doOnError(ex ->
+                        log.error("При получении баланса счета пользователя с id: {} возникла ошибка: {}",
+                                userId, ex.getMessage())
+                );
     }
 
     public Mono<PaymentResponse> pay(PaymentRequest request) {
