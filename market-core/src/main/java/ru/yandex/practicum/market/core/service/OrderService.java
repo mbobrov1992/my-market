@@ -13,6 +13,7 @@ import ru.yandex.practicum.market.core.model.dto.*;
 import ru.yandex.practicum.market.core.model.entity.ItemEnt;
 import ru.yandex.practicum.market.core.model.entity.OrderEnt;
 import ru.yandex.practicum.market.core.model.entity.OrderItemEnt;
+import ru.yandex.practicum.market.core.model.entity.UserEnt;
 import ru.yandex.practicum.market.core.repository.ItemRepository;
 import ru.yandex.practicum.market.core.repository.OrderItemRepository;
 import ru.yandex.practicum.market.core.repository.OrderRepository;
@@ -33,25 +34,28 @@ public class OrderService {
     private final CartItemService cartItemService;
     private final PriceService priceService;
     private final PaymentService paymentService;
+    private final UserService userService;
 
     @Transactional(readOnly = true)
-    public Flux<OrderDto> getOrders() {
-        log.info("Получаем список заказов");
+    public Flux<OrderDto> getOrders(String username) {
+        log.info("Получаем список заказов пользователя: {}", username);
 
         Sort sort = Sort.by(Sort.Direction.ASC, "id");
 
-        return orderRepo.findAll(sort)
-                .collectList()
-                .flatMapMany(this::toOrderDto);
+        return userService.getUser(username)
+                .flatMapMany(user -> orderRepo.findAllByUserId(user.getId(), sort)
+                        .collectList()
+                        .flatMapMany(this::toOrderDto));
     }
 
     @Transactional(readOnly = true)
-    public Mono<OrderDto> getOrder(Long id) {
-        log.info("Получаем заказ с id: {}", id);
+    public Mono<OrderDto> getOrder(String username, Long userOrderId) {
+        log.info("Получаем заказ с userOrderId: {} пользователя: {}", userOrderId, username);
 
-        return orderRepo.findById(id)
-                .flatMap(this::toOrderDto)
-                .switchIfEmpty(Mono.error(() -> new OrderNotFoundException(id)));
+        return userService.getUser(username)
+                .flatMap(user -> orderRepo.findByUserIdAndUserOrderId(user.getId(), userOrderId)
+                        .flatMap(this::toOrderDto)
+                        .switchIfEmpty(Mono.error(() -> new OrderNotFoundException(userOrderId))));
     }
 
     private Mono<OrderDto> toOrderDto(OrderEnt order) {
@@ -82,7 +86,7 @@ public class OrderService {
                                     .toList();
 
                             OrderDto orderDto = new OrderDto(
-                                    orderId,
+                                    orderIdOrderMap.get(orderId).getUserOrderId(),
                                     orderItemDtos,
                                     orderIdOrderMap.get(orderId).getTotalPrice()
                             );
@@ -111,39 +115,55 @@ public class OrderService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public Mono<Long> createOrder() {
-        log.info("Начинаем процесс создания заказа");
+    public Mono<Long> createOrder(String username) {
+        log.info("Начинаем процесс создания заказа пользователя: {}", username);
 
-        return cartItemService.getCartItems()
+        return cartItemService.getCartItems(username)
                 .collectList()
-                .flatMap(this::createOrder)
-                .flatMap(order -> cartItemService.deleteCartItems().thenReturn(order))
-                .doOnSuccess(order -> log.info("Создан заказ с id: {}", order.getId()))
-                .map(OrderEnt::getId);
+                .flatMap(cartItems -> createOrder(username, cartItems))
+                .flatMap(order -> cartItemService.deleteCartItems(username).thenReturn(order))
+                .doOnSuccess(order -> log.info("Создан заказ с userOrderId: {} пользователя: {}", order.getUserOrderId(), username))
+                .map(OrderEnt::getUserOrderId);
     }
 
-    private Mono<OrderEnt> createOrder(List<CartItemDto> cartItems) {
+    private Mono<OrderEnt> createOrder(String username, List<CartItemDto> cartItems) {
         if (cartItems == null || cartItems.isEmpty()) {
-            throw new OrderCreationException("Отсутствуют товары в корзине");
+            return Mono.error(new OrderCreationException("Отсутствуют товары в корзине"));
         }
 
-        BigDecimal totalPrice = calculatePrice(cartItems);
+        return userService.getUser(username)
+                .map(UserEnt::getId)
+                .flatMap(userId -> {
+                    BigDecimal totalPrice = calculatePrice(cartItems);
 
-        PaymentRequest payment = new PaymentRequest();
-        payment.setAmount(totalPrice);
+                    PaymentRequest payment = new PaymentRequest();
+                    payment.setUserId(String.valueOf(userId));
+                    payment.setAmount(totalPrice);
 
-        OrderEnt order = new OrderEnt();
-        order.setTotalPrice(totalPrice);
-
-        return paymentService.pay(payment)
-                .then(orderRepo.save(order)
-                        .flatMap(orderEnt -> createOrderItems(orderEnt, cartItems)
-                                .collectList()
-                                .thenReturn(orderEnt))
-                );
+                    return paymentService.pay(payment)
+                            .then(saveOrder(userId, totalPrice))
+                            .flatMap(order -> saveOrderItems(order, cartItems)
+                                    .collectList()
+                                    .thenReturn(order)
+                            );
+                });
     }
 
-    private Flux<OrderItemEnt> createOrderItems(OrderEnt order, List<CartItemDto> cartItems) {
+    private Mono<OrderEnt> saveOrder(Long userId, BigDecimal totalPrice) {
+        return orderRepo.findTopByUserIdOrderByUserOrderIdDesc(userId)
+                .map(OrderEnt::getUserOrderId)
+                .defaultIfEmpty(0L)
+                .map(userOrderId -> {
+                    OrderEnt order = new OrderEnt();
+                    order.setUserId(userId);
+                    order.setUserOrderId(userOrderId + 1);
+                    order.setTotalPrice(totalPrice);
+                    return order;
+                })
+                .flatMap(orderRepo::save);
+    }
+
+    private Flux<OrderItemEnt> saveOrderItems(OrderEnt order, List<CartItemDto> cartItems) {
         List<OrderItemEnt> orderItems = new ArrayList<>();
 
         cartItems.forEach(cartItem -> {
