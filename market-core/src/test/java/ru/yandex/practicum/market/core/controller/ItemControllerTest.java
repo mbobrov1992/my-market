@@ -3,13 +3,17 @@ package ru.yandex.practicum.market.core.controller;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.test.context.support.WithAnonymousUser;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Mono;
+import ru.yandex.practicum.market.core.config.TestSecurityConfig;
 import ru.yandex.practicum.market.core.model.dto.CartItemDto;
 import ru.yandex.practicum.market.core.model.dto.ItemSortType;
 import ru.yandex.practicum.market.core.model.enums.CartItemAction;
@@ -20,8 +24,12 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@WebFluxTest(ItemController.class)
+@WebFluxTest(controllers = ItemController.class)
+@Import(TestSecurityConfig.class)
 class ItemControllerTest {
+
+    private static final String USER = "user";
+    private static final String ANONYMOUS_USER = "anonymous";
 
     @Autowired
     private WebTestClient webTestClient;
@@ -29,6 +37,7 @@ class ItemControllerTest {
     @MockitoBean
     private CartItemService cartItemService;
 
+    @WithAnonymousUser
     @Test
     void testRedirectRoot() {
         webTestClient.get()
@@ -38,6 +47,7 @@ class ItemControllerTest {
                 .expectHeader().location("/items");
     }
 
+    @WithAnonymousUser
     @Test
     void testGetItems() {
         final String search = "test";
@@ -47,7 +57,7 @@ class ItemControllerTest {
 
         CartItemDto mockItem = CartItemDto.MOCK;
         Page<CartItemDto> page = new PageImpl<>(List.of(mockItem));
-        when(cartItemService.getItems(anyString(), any(PageRequest.class)))
+        when(cartItemService.getItems(anyString(), anyString(), any(PageRequest.class)))
                 .thenReturn(Mono.just(page));
 
         webTestClient.get()
@@ -62,15 +72,35 @@ class ItemControllerTest {
                 .expectStatus().isOk();
 
         verify(cartItemService, times(1))
-                .getItems(search, PageRequest.of(pageNumber, pageSize, sortType.getSort()));
+                .getItems(ANONYMOUS_USER, search, PageRequest.of(pageNumber, pageSize, sortType.getSort()));
     }
 
+    @WithAnonymousUser
+    @Test
+    void testUpdateCartItemCountFromItemsViewUnauthenticated() {
+        final long itemId = 1L;
+        final CartItemAction action = CartItemAction.MINUS;
+
+        webTestClient.post()
+                .uri("/items")
+                .body(BodyInserters.fromFormData("id", String.valueOf(itemId))
+                        .with("action", action.name())
+                        .with("search", "test")
+                        .with("pageNumber", String.valueOf(1))
+                        .with("pageSize", String.valueOf(2))
+                        .with("sort", ItemSortType.ALPHA.name()))
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/login");
+    }
+
+    @WithMockUser(username = USER)
     @Test
     void testUpdateCartItemCountFromItemsView() {
         final long itemId = 1L;
         final CartItemAction action = CartItemAction.MINUS;
 
-        when(cartItemService.updateCartItemCount(itemId, action))
+        when(cartItemService.updateCartItemCount(USER, itemId, action))
                 .thenReturn(Mono.empty());
 
         webTestClient.post()
@@ -86,14 +116,15 @@ class ItemControllerTest {
                 .expectHeader().location("/items");
 
         verify(cartItemService, times(1))
-                .updateCartItemCount(itemId, action);
+                .updateCartItemCount(USER, itemId, action);
     }
 
+    @WithAnonymousUser
     @Test
     void testGetItem() {
         final long itemId = 1L;
 
-        when(cartItemService.getItem(itemId))
+        when(cartItemService.getItem(ANONYMOUS_USER, itemId))
                 .thenReturn(Mono.just(CartItemDto.MOCK));
 
         webTestClient.get()
@@ -103,15 +134,31 @@ class ItemControllerTest {
                 .expectStatus().isOk();
 
         verify(cartItemService, times(1))
-                .getItem(itemId);
+                .getItem(ANONYMOUS_USER, itemId);
     }
 
+    @WithAnonymousUser
+    @Test
+    void testUpdateCartItemCountFromItemViewUnauthenticated() {
+        final long itemId = 1L;
+        final CartItemAction action = CartItemAction.MINUS;
+
+        webTestClient.post()
+                .uri(uriBuilder -> uriBuilder.path("/items/{id}")
+                        .build(itemId))
+                .body(BodyInserters.fromFormData("action", action.name()))
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/login");
+    }
+
+    @WithMockUser(username = USER)
     @Test
     void testUpdateCartItemCountFromItemView() {
         final long itemId = 1L;
         final CartItemAction action = CartItemAction.MINUS;
 
-        when(cartItemService.updateCartItemCount(itemId, action))
+        when(cartItemService.updateCartItemCount(USER, itemId, action))
                 .thenReturn(Mono.empty());
 
         webTestClient.post()
@@ -123,6 +170,6 @@ class ItemControllerTest {
                 .expectHeader().location("/items/" + itemId);
 
         verify(cartItemService, times(1))
-                .updateCartItemCount(itemId, action);
+                .updateCartItemCount(USER, itemId, action);
     }
 }

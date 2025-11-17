@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <head>
     <meta charset="utf-8">
@@ -17,6 +17,10 @@
                 <h2>
                     <span class="badge text-bg-success">Витрина магазина</span>
                 </h2>
+                <a sec:authorize="isAnonymous()"
+                   href="/login" class="btn btn-outline-primary bi bi-person"> Войти</a>
+                <a sec:authorize="isAuthenticated()"
+                   href="/logout" class="btn btn-outline-danger bi bi-box-arrow-right"> Выйти</a>
                 <a href="/orders" class="btn btn-secondary ms-auto bi bi-file-earmark-text"> Заказы</a>
                 <a href="/cart/items" class="btn btn-secondary bi bi-cart4"> Корзина</a>
                 <a href="/items" class="btn btn-secondary bi bi-arrow-left-square"> Главная</a>

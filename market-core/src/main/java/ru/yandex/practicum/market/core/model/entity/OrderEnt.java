@@ -17,6 +17,12 @@ public class OrderEnt extends AuditableEntity {
     @Column("id")
     private long id;
 
+    @Column("user_id")
+    private long userId;
+
+    @Column("user_order_id")
+    private long userOrderId;
+
     @Column("total_price")
     private BigDecimal totalPrice;
 }

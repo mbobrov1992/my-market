@@ -1,6 +1,11 @@
 spring:
   application:
     name: payment
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI}
 
 balance:
   initial-value: 10000

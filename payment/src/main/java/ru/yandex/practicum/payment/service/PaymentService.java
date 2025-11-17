@@ -12,29 +12,31 @@ import ru.yandex.practicum.payment.model.PaymentResponse;
 import ru.yandex.practicum.payment.model.PaymentStatus;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
 public class PaymentService {
 
-    private static final String NOT_FOUND_USER_ID = "UNKNOWN";
+    private final Map<String, BigDecimal> userBalance;
 
-    private final AtomicReference<BigDecimal> balance;
+    @Value("${balance.initial-value}")
+    private BigDecimal initialBalance;
 
-    public PaymentService(@Value("${balance.initial-value}") BigDecimal initialBalance) {
-        this.balance = new AtomicReference<>(initialBalance);
+    public PaymentService() {
+        this.userBalance = new ConcurrentHashMap<>();
     }
 
     public Mono<BalanceResponse> getBalance(String userId) {
-        log.info("Получаем баланс счета");
+        log.info("Получаем баланс счета пользователя с id: {}", userId);
 
         checkIfUserExists(userId);
 
         return Mono.just(new BalanceResponse()
                 .userId(userId)
-                .balance(balance.get()));
+                .balance(userBalance.get(userId)));
     }
 
     public Mono<PaymentResponse> pay(Mono<PaymentRequest> request) {
@@ -42,7 +44,7 @@ public class PaymentService {
     }
 
     private PaymentResponse processPayment(PaymentRequest request) {
-        log.info("Выполняем оплату пользователем {} на сумму {}", request.getUserId(), request.getAmount());
+        log.info("Выполняем оплату пользователем с id: {} на сумму: {}", request.getUserId(), request.getAmount());
 
         checkIfUserExists(request.getUserId());
 
@@ -51,9 +53,9 @@ public class PaymentService {
                 .userId(request.getUserId());
 
         try {
-            BigDecimal balance = subtractAmount(request.getAmount());
+            BigDecimal balance = subtractAmount(request.getUserId(), request.getAmount());
 
-            log.info("Произведена оплата пользователем {} на сумму {}", response.getUserId(), request.getAmount());
+            log.info("Произведена оплата пользователем с id: {} на сумму: {}", response.getUserId(), request.getAmount());
 
             return response.status(PaymentStatus.SUCCESS)
                     .message("Оплата выполнена успешно")
@@ -62,23 +64,25 @@ public class PaymentService {
             log.error("Ошибка оплаты: {}", ex.getMessage());
             return response.status(PaymentStatus.FAILED)
                     .message(ex.getMessage())
-                    .newBalance(balance.get());
+                    .newBalance(userBalance.get(request.getUserId()));
         }
     }
 
     private void checkIfUserExists(String userId) {
-        if (NOT_FOUND_USER_ID.equals(userId)) {
+        if (userId == null || userId.isBlank()) {
             log.error("Не найден пользователь с id: {}", userId);
             throw new UserNotFoundException(userId);
         }
+
+        userBalance.computeIfAbsent(userId, k -> initialBalance);
     }
 
-    private BigDecimal subtractAmount(BigDecimal amount) {
-        return balance.updateAndGet(current -> {
-            if (current.subtract(amount).signum() == -1) {
-                throw new PaymentException("Недостаточно средств на счете");
+    private BigDecimal subtractAmount(String userId, BigDecimal amount) {
+        return userBalance.compute(userId, (k, currentBalance) -> {
+            if (currentBalance == null || currentBalance.compareTo(amount) < 0) {
+                throw new PaymentException("Недостаточно средств на счете пользователя с id: " + userId);
             }
-            return current.subtract(amount);
+            return currentBalance.subtract(amount);
         });
     }
 }
